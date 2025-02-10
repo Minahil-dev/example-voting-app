@@ -1,0 +1,45 @@
+name: Deploy Voting App to AKS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      # Step 1: Checkout repository
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Step 2: Log in to Docker Hub
+      - name: Log in to Docker Hub
+        run: echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+      # Step 3: Pull images from Docker Hub
+      - name: Pull Docker images
+        run: |
+          docker pull minahiliqbal/worker 
+          docker pull minahiliqbal/result
+          docker pull minahiliqbal/vote  
+          
+
+      # Step 4: Set up kubectl to interact with AKS
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+
+      # Step 5: Set up Azure CLI to interact with your resources
+      - name: Set up Azure CLI
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      # Step 6: Configure Kubernetes context to connect to AKS
+      - name: Configure Kubernetes context
+        run: az aks get-credentials --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} --name ${{ secrets.AKS_CLUSTER_NAME }} --overwrite-existing
+
+      # Step 7: Deploy to AKS
+      - name: Deploy to AKS
+        run:  kubectl apply -f k8s-specifications/vote-deployment.yaml  # Specify the correct file path
+
