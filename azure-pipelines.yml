@@ -1,0 +1,80 @@
+trigger:
+  branches:
+    include:
+      - main  # Trigger the pipeline on push to the main branch
+
+pool:
+  vmImage: 'ubuntu-latest'  # Use Ubuntu for the pipeline
+
+variables:
+  voteImage: 'minahiliqbal/vote'  # Docker image for the voting app
+  resultImage: 'minahiliqbal/result'  # Docker image for the result app
+  workerImage: 'minahiliqbal/worker'  # Docker image for the worker app
+  azureResourceGroup: 'ITM-Learning'  # Your Azure Resource Group
+  aksClusterName: 'reactapp-cluster'  # Your AKS Cluster Name
+
+steps:
+
+# Checkout the code from the repository
+- task: Checkout   # Correct task definition
+  displayName: 'Checkout repository'
+
+# Build Docker images for vote, result, and worker apps
+- task: Docker@2
+  displayName: 'Build and Push Vote Image'
+  inputs:
+    command: 'buildAndPush'
+    repository: $(voteImage)
+    dockerfile: 'Dockerfile.vote'  # Path to the Dockerfile for the vote app
+    containerRegistry: '$(dockerRegistryServiceConnection)'  # Docker Registry service connection
+    tags: '$(Build.BuildId)'
+
+- task: Docker@2
+  displayName: 'Build and Push Result Image'
+  inputs:
+    command: 'buildAndPush'
+    repository: $(resultImage)
+    dockerfile: 'Dockerfile.result'  # Path to the Dockerfile for the result app
+    containerRegistry: '$(dockerRegistryServiceConnection)'
+    tags: '$(Build.BuildId)'
+
+- task: Docker@2
+  displayName: 'Build and Push Worker Image'
+  inputs:
+    command: 'buildAndPush'
+    repository: $(workerImage)
+    dockerfile: 'Dockerfile.worker'  # Path to the Dockerfile for the worker app
+    containerRegistry: '$(dockerRegistryServiceConnection)'
+    tags: '$(Build.BuildId)'
+
+# Deploy to Azure Kubernetes Service (AKS)
+- task: AzureCLI@2
+  displayName: 'Deploy to AKS'
+  inputs:
+    azureSubscription: 'Azure subscription 1'  # Your Azure DevOps Azure service connection
+    scriptType: 'bash'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
+      # Get AKS credentials
+      az aks get-credentials --resource-group $(azureResourceGroup) --name $(aksClusterName) --overwrite-existing
+
+      # Apply the Kubernetes manifests
+      kubectl apply -f deployment.yml
+      kubectl apply -f service.yml
+
+# Get the External IP of the service
+- task: Kubernetes@1
+  displayName: 'Get AKS External IP'
+  inputs:
+    connectionType: 'Azure Resource Manager'  # Connection to Azure
+    azureSubscription: 'Azure subscription 1'  # Your Azure DevOps Azure service connection
+    kubernetesCluster: '$(aksClusterName)'
+    namespace: 'default'
+    command: 'get'
+    arguments: 'svc voting-app-service'
+
+# Optionally, add a step to fetch the External IP and output it to the console
+- script: |
+    echo "Fetching external IP for the voting app..."
+    kubectl get svc voting-app-service -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
+  displayName: 'Fetch External IP of Voting App'
