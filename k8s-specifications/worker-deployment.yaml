@@ -1,8 +1,6 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  labels:
-    app: worker
   name: worker
 spec:
   replicas: 1
@@ -15,5 +13,7 @@ spec:
         app: worker
     spec:
       containers:
-      - image: dockersamples/examplevotingapp_worker
-        name: worker
+      - name: worker
+        image: minahiliqbal/worker:latest  # Replace with your Docker image name
+        ports:
+        - containerPort: 80

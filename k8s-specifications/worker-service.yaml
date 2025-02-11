@@ -1,4 +1,7 @@
+<<<<<<< HEAD
 
+=======
+>>>>>>> 4d36d44 (Added GitHub Actions workflow and Kubernetes manifests)
 apiVersion: v1
 kind: Service
 metadata:
@@ -10,6 +13,7 @@ spec:
     - protocol: TCP
       port: 80
       targetPort: 80
+<<<<<<< HEAD
   type: LoadBalancer
 # Worker Service YAML
 apiVersion: v1
@@ -23,3 +27,6 @@ spec:
     - protocol: TCP
       port: 80
       targetPort: 8080
+=======
+  type: LoadBalancer
+>>>>>>> 4d36d44 (Added GitHub Actions workflow and Kubernetes manifests)
