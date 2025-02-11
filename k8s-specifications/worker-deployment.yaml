@@ -16,4 +16,4 @@ spec:
       - name: worker
         image: minahiliqbal/worker:latest  # Replace with your Docker image name
         ports:
-        - containerPort: 80
+        - containerPort: 8080
